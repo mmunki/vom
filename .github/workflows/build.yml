@@ -1,0 +1,43 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache: true
+
+      - name: Unit tests
+        run: go test ./...
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Cross-compile
+        run: ./build.sh --no-test --version "${{ github.sha }}"
+
+      - name: Verify binaries
+        run: |
+          set -euo pipefail
+          file dist/vom-linux-amd64 dist/vom-darwin-arm64 dist/vom-windows-amd64.exe
+          ./dist/vom-linux-amd64 doctor --home "$RUNNER_TEMP/vom-home"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vom-binaries
+          path: dist/
+          retention-days: 7

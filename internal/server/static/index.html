@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#6750A4">
+<meta name="description" content="VOM - download Android 7.0 to 17 and run them in the official Android emulator.">
+<title>VOM - Android Virtual Machine</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+<div class="app">
+  <aside class="rail" aria-label="Primary">
+    <a class="brand" href="/" aria-label="VOM home">
+      <img src="/icon.svg" alt="" width="40" height="40">
+      <span>VOM</span>
+    </a>
+    <nav class="rail-nav">
+      <button class="nav-item active" data-view="catalog" type="button">
+        <span class="nav-icon" data-icon="grid"></span><span>Catalog</span>
+      </button>
+      <button class="nav-item" data-view="library" type="button">
+        <span class="nav-icon" data-icon="devices"></span><span>Library</span>
+      </button>
+      <button class="nav-item" data-view="setup" type="button">
+        <span class="nav-icon" data-icon="tune"></span><span>Setup</span>
+      </button>
+    </nav>
+    <div class="rail-foot">
+      <button class="icon-btn" id="themeToggle" type="button" title="Toggle theme" aria-label="Toggle theme">
+        <span data-icon="dark"></span>
+      </button>
+    </div>
+  </aside>
+
+  <main id="content">
+    <header class="topbar">
+      <div class="topbar-title">
+        <h1 id="pageTitle">Catalog</h1>
+        <p id="pageSubtitle">Android 7.0 through 17, straight from Google</p>
+      </div>
+      <div class="topbar-actions">
+        <button class="icon-btn" id="refreshBtn" type="button" title="Refresh catalog" aria-label="Refresh catalog">
+          <span data-icon="refresh"></span>
+        </button>
+        <button class="btn tonal" id="setupBtn" type="button">
+          <span data-icon="memory"></span><span>Runtime</span>
+        </button>
+      </div>
+    </header>
+
+    <section class="view" id="view-catalog" aria-labelledby="pageTitle">
+      <div class="hero">
+        <div class="hero-copy">
+          <span class="eyebrow">Official Google images</span>
+          <h2>Every Android version.<br>One quiet manager.</h2>
+          <p>Download Android 7.0 to 17, build a virtual device and boot the real
+             Android emulator. AOSP, Google APIs and Google Play images are
+             verified against Google's SHA-1 before they are unpacked.</p>
+          <div class="hero-actions">
+            <button class="btn filled" id="heroSetup" type="button">
+              <span data-icon="download"></span><span>Set up runtime</span>
+            </button>
+            <button class="btn outline" id="heroLibrary" type="button">
+              <span data-icon="devices"></span><span>Open library</span>
+            </button>
+          </div>
+          <div class="hero-stats">
+            <div><strong id="statVersions">14</strong><span>Android versions</span></div>
+            <div><strong id="statImages">0</strong><span>images available</span></div>
+            <div><strong id="statInstalled">0</strong><span>installed</span></div>
+          </div>
+        </div>
+        <div class="hero-art" aria-hidden="true">
+          <div class="orb orb-a"></div>
+          <div class="orb orb-b"></div>
+          <div class="phone">
+            <div class="phone-notch"></div>
+            <div class="phone-screen">
+              <span class="phone-time">09:41</span>
+              <div class="phone-widget">
+                <span class="phone-widget-icon" data-icon="android"></span>
+                <strong>VOM</strong>
+                <small>Android 17 ready</small>
+              </div>
+              <div class="phone-row"><span></span><span></span><span></span></div>
+            </div>
+          </div>
+          <div class="float-chip chip-a"><span data-icon="check"></span> SHA-1 verified</div>
+          <div class="float-chip chip-b"><span data-icon="bolt"></span> KVM ready</div>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="segmented" id="tagFilter" role="tablist" aria-label="Image type">
+          <button class="seg active" data-tag="all" type="button">All</button>
+          <button class="seg" data-tag="default" type="button">AOSP</button>
+          <button class="seg" data-tag="google_apis" type="button">Google APIs</button>
+          <button class="seg" data-tag="google_apis_playstore" type="button">Google Play</button>
+        </div>
+        <label class="search">
+          <span data-icon="search"></span>
+          <input id="searchInput" type="search" placeholder="Search version or API" autocomplete="off">
+        </label>
+      </div>
+
+      <div id="catalogGrid" class="grid" aria-live="polite"></div>
+      <div id="catalogEmpty" class="empty hidden">
+        <span data-icon="search"></span>
+        <h3>No image matches that search</h3>
+        <p>Try “Android 13”, “API 36” or switch back to All.</p>
+      </div>
+    </section>
+
+    <section class="view hidden" id="view-library" aria-labelledby="pageTitle">
+      <div class="section-head">
+        <div>
+          <h2>Installed images</h2>
+          <p>Verified system images on this host.</p>
+        </div>
+        <button class="btn tonal" id="libraryRefresh" type="button">
+          <span data-icon="refresh"></span><span>Refresh</span>
+        </button>
+      </div>
+      <div id="imageList" class="list"></div>
+
+      <div class="section-head spaced">
+        <div>
+          <h2>Virtual devices</h2>
+          <p>Each device is a complete AVD configuration.</p>
+        </div>
+        <button class="btn filled" id="newDeviceBtn" type="button">
+          <span data-icon="add"></span><span>New device</span>
+        </button>
+      </div>
+      <div id="avdList" class="grid devices"></div>
+    </section>
+
+    <section class="view hidden" id="view-setup" aria-labelledby="pageTitle">
+      <div class="setup-grid">
+        <div class="card setup-card">
+          <div class="card-head">
+            <div class="icon-badge"><span data-icon="memory"></span></div>
+            <div>
+              <h2>Emulator runtime</h2>
+              <p>The official Google emulator and platform-tools.</p>
+            </div>
+          </div>
+          <div id="setupStatus" class="status-list"></div>
+          <div class="card-actions">
+            <button class="btn filled" id="installRuntimeBtn" type="button">
+              <span data-icon="download"></span><span>Install runtime</span>
+            </button>
+            <button class="btn text" id="refreshStatusBtn" type="button">Check again</button>
+          </div>
+        </div>
+
+        <div class="card setup-card">
+          <div class="card-head">
+            <div class="icon-badge secondary"><span data-icon="bolt"></span></div>
+            <div>
+              <h2>This host</h2>
+              <p>Virtualization and storage available to VOM.</p>
+            </div>
+          </div>
+          <div id="hostStatus" class="status-list"></div>
+        </div>
+
+        <div class="card setup-card wide">
+          <h2>How VOM runs Android</h2>
+          <div class="steps">
+            <div class="step"><span>1</span><div><strong>Download</strong><p>VOM reads Google's
+              system-image repository and fetches the exact package you pick. The SHA-1 is
+              checked before anything is unpacked.</p></div></div>
+            <div class="step"><span>2</span><div><strong>Create</strong><p>A standard AVD is
+              written with the image path, ABI, RAM, screen size and Play Store flag, so the
+              emulator (and Android Studio) see a normal device.</p></div></div>
+            <div class="step"><span>3</span><div><strong>Boot</strong><p>VOM launches Google's
+              emulator with hardware acceleration. A window opens on the desktop; headless mode
+              is available for CI.</p></div></div>
+          </div>
+          <div class="note">
+            <span data-icon="info"></span>
+            <p>Running a full Android system inside an unrooted Android app is not possible
+            without hypervisor or root access. VOM therefore runs the real Google emulator on a
+            desktop host; the same interface works in a phone browser on your network.</p>
+          </div>
+        </div>
+
+        <div class="card setup-card wide">
+          <h2>Source &amp; licensing</h2>
+          <p class="muted">Images are fetched from
+            <code>dl.google.com/android/repository</code>. AOSP images are Android Open Source
+            Project builds; Google APIs and Google Play images are subject to Google's Android
+            SDK license. VOM itself is Apache-2.0 and keeps no copy of Google's SDK in its
+            source tree.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="mobile-nav" aria-label="Primary mobile">
+  <button class="nav-item active" data-view="catalog" type="button"><span class="nav-icon" data-icon="grid"></span><span>Catalog</span></button>
+  <button class="nav-item" data-view="library" type="button"><span class="nav-icon" data-icon="devices"></span><span>Library</span></button>
+  <button class="nav-item" data-view="setup" type="button"><span class="nav-icon" data-icon="tune"></span><span>Setup</span></button>
+</div>
+
+<div class="snackbar" id="snackbar" role="status" aria-live="polite"></div>
+
+<div class="jobbar hidden" id="jobbar">
+  <div class="jobbar-head">
+    <span class="job-state" id="jobState"></span>
+    <span class="job-label" id="jobLabel"></span>
+    <button class="icon-btn small" id="jobCancel" type="button" title="Cancel" aria-label="Cancel job"><span data-icon="close"></span></button>
+  </div>
+  <div class="job-stage" id="jobStage"></div>
+  <div class="progress"><span id="jobProgress"></span></div>
+  <div class="job-meta"><span id="jobBytes"></span><span id="jobSpeed"></span></div>
+</div>
+
+<div class="dialog-backdrop hidden" id="dialogBackdrop">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialogTitle">
+    <div class="dialog-head">
+      <h2 id="dialogTitle">New device</h2>
+      <button class="icon-btn" id="dialogClose" type="button" aria-label="Close"><span data-icon="close"></span></button>
+    </div>
+    <div id="dialogBody"></div>
+    <div class="dialog-actions" id="dialogActions"></div>
+  </div>
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>

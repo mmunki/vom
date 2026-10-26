@@ -1,0 +1,26 @@
+VOM notices
+===========
+
+VOM is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Go standard library
+-------------------
+The binaries are built with the Go toolchain. The Go runtime and standard
+library are distributed under the BSD 3-Clause license, Copyright (c) 2009
+The Go Authors. See https://go.dev/LICENSE.
+
+Third-party Go modules
+----------------------
+VOM has no third-party Go dependencies. Everything outside the standard
+library is in this repository.
+
+Android SDK components (downloaded, not bundled)
+------------------------------------------------
+VOM downloads the Android emulator, platform-tools and system images from
+Google's official Android SDK repository at runtime. Those components are not
+part of this source tree and are not redistributed by VOM. Use of the Android
+SDK, Google APIs images and Google Play images is governed by the Android SDK
+License Agreement accepted when the components are downloaded.
+Source: https://dl.google.com/android/repository/
+
+Android is a trademark of Google LLC. VOM is not affiliated with Google.

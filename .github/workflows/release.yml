@@ -1,0 +1,58 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "release tag (for example v1.0.0)"
+        required: true
+      name:
+        description: "release title"
+        required: false
+        default: "VOM"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache: true
+
+      - name: Test
+        run: |
+          go test ./...
+          go vet ./...
+
+      - name: Build
+        run: |
+          tag="${{ inputs.tag || github.ref_name }}"
+          ./build.sh --no-test --version "$tag"
+          git archive --format=tar.gz --prefix="vom-${tag}/" \
+            -o "dist/vom-${tag}-source.tar.gz" HEAD
+          ( cd dist && sha256sum vom-* > SHA256SUMS )
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="${{ inputs.tag || github.ref_name }}"
+          name="${{ inputs.name || 'VOM' }}"
+          notes="$(cat RELEASE-NOTES.md)"
+          notes+=$'\n\n### Checksums (SHA-256)\n\n'
+          notes+="$(sed 's/^/- `/' dist/SHA256SUMS | sed 's/  /`: `/; s/$/`/' )"
+          gh release create "$tag" dist/vom-* dist/SHA256SUMS \
+            --title "$name $tag" --notes "$notes"

@@ -1,0 +1,26 @@
+{
+  "name": "VOM - Android Virtual Machine",
+  "short_name": "VOM",
+  "description": "Download Android 7.0 to 17 and run them in the official Android emulator.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#fef7ff",
+  "theme_color": "#6750a4",
+  "categories": ["developer", "utilities"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
