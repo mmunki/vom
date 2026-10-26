@@ -31,15 +31,29 @@ jobs:
           go-version: "1.24"
           cache: true
 
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
       - name: Test
         run: |
           go test ./...
           go vet ./...
 
-      - name: Build
+      - name: Build host binaries
         run: |
           tag="${{ inputs.tag || github.ref_name }}"
           ./build.sh --no-test --version "$tag"
+
+      - name: Build VOM Mobile APK
+        run: |
+          ./android/build.sh
+          cp android/dist/vom-android.apk dist/vom-android.apk
+
+      - name: Package source and checksums
+        run: |
+          tag="${{ inputs.tag || github.ref_name }}"
           git archive --format=tar.gz --prefix="vom-${tag}/" \
             -o "dist/vom-${tag}-source.tar.gz" HEAD
           ( cd dist && sha256sum vom-* > SHA256SUMS )

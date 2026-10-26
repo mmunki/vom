@@ -5,9 +5,10 @@ interface. It lists **Android 7.0 through Android 17** (API 24-37), downloads
 the official Google system image you pick, verifies its SHA-1, creates a
 standard AVD and boots the real Android emulator.
 
-One binary. No Gradle, no Android Studio, no account, no telemetry. The
-interface is served from `127.0.0.1` and opens in your browser; the same page
-is an installable PWA on a phone.
+One Go binary for the host. No Gradle, no Android Studio, no account, no
+telemetry. The interface is served from `127.0.0.1` and opens in your browser.
+**VOM Mobile** is a small signed APK that turns a normal Android phone into a
+live touchscreen and remote control for those devices.
 
 ```
 vom
@@ -19,8 +20,9 @@ vom
 > version inside itself: that needs root, a hypervisor (KVM/AVF) and kernel
 > access that Google does not expose to third-party apps. VOM therefore drives
 > **Google's own emulator** on Linux, macOS or Windows, which is exactly the
-> runtime that Android Studio uses. The UI works in a desktop browser and on a
-> phone browser on the same LAN.
+> runtime that Android Studio uses. The APK is a live remote screen, not an
+> embedded hypervisor: the virtual Android runs on the VOM host, and the phone
+> displays and controls it over the LAN.
 
 ## What it does
 
@@ -39,6 +41,8 @@ vom
   and delete.
 - **Material 3 UI** - responsive navigation rail / bottom navigation, light and
   dark themes, download cards, progress and a PWA manifest.
+- **VOM Mobile** - a signed APK with live screen streaming, tap and swipe,
+  Back/Home/Recents/volume/power keys and a text input dialog.
 
 ## Install
 
@@ -49,6 +53,14 @@ git clone https://github.com/mmunki/vom
 cd vom
 ./build.sh
 ./dist/vom-linux-amd64
+```
+
+The Android client is an asset of every release (`vom-android.apk`). To build
+it from source you need JDK 17 and an Android SDK; Gradle is not used:
+
+```bash
+ANDROID_HOME=/path/to/android-sdk ./android/build.sh
+# android/dist/vom-android.apk
 ```
 
 Requirements: Python is not needed; the binary is static Go. The emulator
@@ -92,10 +104,16 @@ Start VOM on the desktop with a LAN listener:
 vom serve --listen 0.0.0.0:8765
 ```
 
-Then open `http://<desktop-ip>:8765` on the phone and choose **Add to Home
-screen**. The phone becomes the remote control; the emulator still runs on the
-desktop where the hypervisor is. The API has no authentication, so only do this
-on a trusted network.
+Install `vom-android.apk` from the release page, open it and enter
+`http://<desktop-ip>:8765`. The **Devices** tab shows the host, its installed
+images and its AVDs. Tap **Screen** on a running device for a live view; tap
+the screen to send touches, swipe to scroll, use the bottom keys for Back,
+Home, Recents, volume and power, and **Type** to send text to the focused
+field.
+
+The APK talks to the same HTTP API as the browser UI. It has no native code,
+so one APK covers every phone ABI. The API has no authentication, so only run
+the listener on a trusted network.
 
 ## HTTP API
 
@@ -113,6 +131,10 @@ POST /api/avd/start           {"name":"...","headless":false,"wipe":false}
 POST /api/avd/stop            {"name":"..."}
 POST /api/avd/delete          {"name":"..."}
 GET  /api/avd/log?name=...    tail of the emulator log
+GET  /api/avd/screen?name=...&w=540
+                              PNG screenshot; X-Screen-Width/Height headers
+POST /api/avd/input           {"name":"...","action":"tap","x":1,"y":2}
+                              swipe, key and text actions
 GET  /api/jobs                background job progress
 ```
 
@@ -122,6 +144,7 @@ GET  /api/jobs                background job progress
 ./test.sh                    # unit tests, vet, native build
 ./scripts/integration.sh     # download Android 7.0 and boot it headless
 ./build.sh                   # cross-compile Linux/macOS/Windows binaries
+./android/build.sh           # build and sign vom-android.apk
 ```
 
 The integration test downloads the stable emulator, platform-tools and the

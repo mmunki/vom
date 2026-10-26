@@ -2,3 +2,6 @@
 /build/
 /.cache/
 *.log
+/android/.build/
+/android/dist/
+/android/.keys/
