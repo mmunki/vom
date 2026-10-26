@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -112,6 +113,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/api/avd/stop", s.handleAVDStop)
 	mux.HandleFunc("/api/avd/delete", s.handleAVDDelete)
 	mux.HandleFunc("/api/avd/log", s.handleAVDLog)
+	mux.HandleFunc("/api/avd/screen", s.handleAVDScreen)
+	mux.HandleFunc("/api/avd/input", s.handleAVDInput)
 	mux.HandleFunc("/api/jobs", s.handleJobs)
 	mux.HandleFunc("/api/jobs/cancel", s.handleJobCancel)
 	mux.HandleFunc("/", s.handleStatic)
@@ -560,6 +563,78 @@ func (s *Server) handleAVDLog(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
 	w.Write([]byte(text))
+}
+
+func (s *Server) handleAVDScreen(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeError(w, http.StatusMethodNotAllowed, "GET required")
+		return
+	}
+	name := r.URL.Query().Get("name")
+	if name == "" {
+		writeError(w, http.StatusBadRequest, "name is required")
+		return
+	}
+	width := 540
+	if v := r.URL.Query().Get("w"); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil || n < 120 || n > 2160 {
+			writeError(w, http.StatusBadRequest, "w must be between 120 and 2160")
+			return
+		}
+		width = n
+	}
+	screen, err := s.AVDs.Screenshot(r.Context(), name, width)
+	if err != nil {
+		writeError(w, http.StatusServiceUnavailable, err.Error())
+		return
+	}
+	w.Header().Set("Content-Type", "image/png")
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("X-Screen-Width", strconv.Itoa(screen.Width))
+	w.Header().Set("X-Screen-Height", strconv.Itoa(screen.Height))
+	w.WriteHeader(http.StatusOK)
+	w.Write(screen.PNG)
+}
+
+func (s *Server) handleAVDInput(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Name     string `json:"name"`
+		Action   string `json:"action"`
+		X        int    `json:"x"`
+		Y        int    `json:"y"`
+		X2       int    `json:"x2"`
+		Y2       int    `json:"y2"`
+		Duration int    `json:"duration"`
+		KeyCode  int    `json:"keyCode"`
+		Text     string `json:"text"`
+	}
+	if !decodeBody(w, r, &body) {
+		return
+	}
+	if body.Name == "" {
+		writeError(w, http.StatusBadRequest, "name is required")
+		return
+	}
+	var err error
+	switch body.Action {
+	case "tap":
+		err = s.AVDs.Tap(r.Context(), body.Name, body.X, body.Y)
+	case "swipe":
+		err = s.AVDs.Swipe(r.Context(), body.Name, body.X, body.Y, body.X2, body.Y2, body.Duration)
+	case "key":
+		err = s.AVDs.Key(r.Context(), body.Name, body.KeyCode)
+	case "text":
+		err = s.AVDs.Text(r.Context(), body.Name, body.Text)
+	default:
+		writeError(w, http.StatusBadRequest, "action must be tap, swipe, key or text")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusServiceUnavailable, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
 
 func (s *Server) handleJobs(w http.ResponseWriter, r *http.Request) {

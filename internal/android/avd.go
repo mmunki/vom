@@ -48,6 +48,7 @@ type AVD struct {
 	Running   bool      `json:"running"`
 	Headless  bool      `json:"headless"`
 	PID       int       `json:"pid"`
+	Serial    string    `json:"serial,omitempty"`
 	Log       string    `json:"log"`
 }
 
@@ -78,6 +79,10 @@ func metaPath(dir string) string { return filepath.Join(dir, "vom-avd.json") }
 func (m *Manager) avdDir(name string) string { return filepath.Join(m.Paths.AVD, name+".avd") }
 
 func (m *Manager) pidPath(name string) string { return filepath.Join(m.avdDir(name), "emulator.pid") }
+
+func (m *Manager) serialPath(name string) string {
+	return filepath.Join(m.avdDir(name), "emulator.serial")
+}
 
 // DefaultName proposes a name for an image.
 func DefaultName(img catalog.Image) string {
@@ -127,6 +132,9 @@ func (m *Manager) List() ([]AVD, error) {
 func (m *Manager) decorate(a *AVD) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if serial, ok := m.readSerial(a.Name); ok {
+		a.Serial = serial
+	}
 	if p, ok := m.procs[a.Name]; ok {
 		a.Running = true
 		a.PID = p.cmd.Process.Pid
@@ -266,6 +274,10 @@ func (m *Manager) Start(name string, headless, wipe bool) (AVD, error) {
 	if !m.Paths.HasEmulator() {
 		return AVD{}, fmt.Errorf("the emulator is not installed yet; run setup first")
 	}
+	port, err := freeEmulatorPort()
+	if err != nil {
+		return AVD{}, err
+	}
 	if _, err := os.Stat(filepath.Join(m.Paths.SystemDir(catalog.Image{APILevel: avd.APILevel, Tag: avd.Tag, ABI: avd.ABI}), "system.img")); err != nil {
 		// Fall back to the stored directory in config.ini.
 		if _, err2 := os.Stat(filepath.Join(avd.Dir, "config.ini")); err2 != nil {
@@ -284,6 +296,7 @@ func (m *Manager) Start(name string, headless, wipe bool) (AVD, error) {
 
 	args := []string{
 		"-avd", name,
+		"-port", strconv.Itoa(port),
 		"-no-snapshot-save",
 		"-no-boot-anim",
 		"-no-metrics",
@@ -316,7 +329,9 @@ func (m *Manager) Start(name string, headless, wipe bool) (AVD, error) {
 		logFile.Close()
 		return AVD{}, fmt.Errorf("start emulator: %w", err)
 	}
+	serial := fmt.Sprintf("emulator-%d", port)
 	_ = os.WriteFile(m.pidPath(name), []byte(strconv.Itoa(cmd.Process.Pid)), 0o644)
+	_ = os.WriteFile(m.serialPath(name), []byte(serial), 0o644)
 	proc := &runningProc{cmd: cmd, done: make(chan struct{}), logFile: logFile, headless: headless}
 	m.mu.Lock()
 	m.procs[name] = proc
@@ -324,6 +339,7 @@ func (m *Manager) Start(name string, headless, wipe bool) (AVD, error) {
 	go func() {
 		err := cmd.Wait()
 		_ = os.Remove(m.pidPath(name))
+		_ = os.Remove(m.serialPath(name))
 		fmt.Fprintf(logFile, "\n===== VOM stopped %s (err=%v) =====\n", time.Now().Format(time.RFC3339), err)
 		logFile.Close()
 		m.mu.Lock()
@@ -334,6 +350,7 @@ func (m *Manager) Start(name string, headless, wipe bool) (AVD, error) {
 	avd.Running = true
 	avd.Headless = headless
 	avd.PID = cmd.Process.Pid
+	avd.Serial = serial
 	avd.Log = logPath
 	return avd, nil
 }
@@ -370,6 +387,7 @@ func (m *Manager) Stop(name string) error {
 			return fmt.Errorf("stop AVD %q: %w", name, err)
 		}
 		_ = os.Remove(m.pidPath(name))
+		_ = os.Remove(m.serialPath(name))
 		return nil
 	}
 	if runtime.GOOS != "windows" {
@@ -391,6 +409,15 @@ func (m *Manager) Stop(name string) error {
 			return fmt.Errorf("emulator %q did not stop", name)
 		}
 	}
+}
+
+func (m *Manager) readSerial(name string) (string, bool) {
+	b, err := os.ReadFile(m.serialPath(name))
+	if err != nil {
+		return "", false
+	}
+	serial := strings.TrimSpace(string(b))
+	return serial, serial != ""
 }
 
 func (m *Manager) readPID(name string) (int, bool) {
