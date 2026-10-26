@@ -47,7 +47,15 @@ jobs:
           ./build.sh --no-test --version "$tag"
 
       - name: Build VOM Mobile APK
+        env:
+          VOM_ANDROID_KEYSTORE_BASE64: ${{ secrets.VOM_ANDROID_KEYSTORE_BASE64 }}
+          VOM_ANDROID_KS_PASS: ${{ secrets.VOM_ANDROID_KS_PASS }}
+          VOM_ANDROID_KEY_PASS: ${{ secrets.VOM_ANDROID_KEY_PASS }}
         run: |
+          if [ -n "${VOM_ANDROID_KEYSTORE_BASE64:-}" ]; then
+            printf '%s' "$VOM_ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/vom-release.keystore"
+            export VOM_ANDROID_KEYSTORE="$RUNNER_TEMP/vom-release.keystore"
+          fi
           ./android/build.sh
           cp android/dist/vom-android.apk dist/vom-android.apk
 
